@@ -52,6 +52,8 @@ Shader "Custom/XCTS_Standard_V1.0.3"
         _RimLightStrength ("Rim Light Strength", Range(0.0, 100.0)) = 0.5
         _RimLightBias ("Rim Light Bias", Range(-1.0, 1.0)) = 0.0
         _RimLightSmoothstep ("Rim Light Smoothstep", Range(0.0, 1.0)) = 0.0
+        [ToggleOff]_EnableShadowMap ("Enable FaceShadowMap", int) = 0
+        _ShadowMapTex ("FaceShaodwMapTex", 2D) = "white"{}
 
         [Header(Others)]
         _Wet ("Wet", Range(0.0, 1.0)) = 0.0
@@ -96,12 +98,11 @@ Shader "Custom/XCTS_Standard_V1.0.3"
             int _EnableSpecular;
             int _EnableSubSurfaceScattering;
             int _EnableRimLight;
-
+            int _EnableShadowMap;
             float _FaceFix;
             int _NormalReverse;
             int _ReceiveShadow;
             float4 _HeadCenter;
-
             float _BaseColorStrength;
             float _AlphaClip;
             float4 _DiffuseColor;
@@ -127,12 +128,13 @@ Shader "Custom/XCTS_Standard_V1.0.3"
 
             float _Wet;
             CBUFFER_END
-
+            TEXTURE2D(_ShadowMapTex);
+            SAMPLER(sampler_ShadowMapTex);
             TEXTURE2D(_BaseTexture);
             float4 _BaseTexture_ST;
-
             #define textureSampler1 SamplerState_Point_Repeat
             SAMPLER(textureSampler1);
+
 
             struct Attributes
             {
@@ -206,9 +208,23 @@ Shader "Custom/XCTS_Standard_V1.0.3"
                 _SubSurfaceScatteringStrength *= (1 - 0.5 * _Wet);
 
                 half shadow = MainLightRealtimeShadow(i.shadowCoord);
-                
                 half3 diffuse = _EnableDiffuse * light.color.rgb * _DiffuseColor.rgb * smoothstep(0.5 - _DiffuseSmoothstep * 0.5, 0.5 + _DiffuseSmoothstep * 0.5, max(NdotL + _DiffuseBias * 0.5, 0));
                 diffuse += _EnableDiffuse * light.color.rgb * _ShadowColor.rgb * (1 - smoothstep(0.5 - _DiffuseSmoothstep * 0.5, 0.5 + _DiffuseSmoothstep * 0.5, max(NdotL + _DiffuseBias * 0.5, 0)));
+                if(_EnableShadowMap){
+                    half4 ilmTex = SAMPLE_TEXTURE2D(_ShadowMapTex, sampler_ShadowMapTex,i.uv);
+                    half4 r_ilmTex = SAMPLE_TEXTURE2D(_ShadowMapTex, sampler_ShadowMapTex,float2(1 - i.uv.x, i.uv.y));
+                    float2 Left = normalize(TransformObjectToWorldDir(float3(1, 0, 0)).xz);
+                    float2 Front = normalize(TransformObjectToWorldDir(float3(0, 0, 1)).xz);
+                    float2 LightDir = normalize(light.direction.xz);
+                    float ctrl = 1 - clamp(0, 1, dot(Front, LightDir) * 0.5 + 0.5);
+                    float ilm = dot(LightDir, Left) > 0 ? r_ilmTex.r : ilmTex.r;
+                    float isSahdowNew = step(ilm, ctrl);
+                    float bias = smoothstep(0.5 - _DiffuseSmoothstep * 0.5, 0.5 + _DiffuseSmoothstep * 0.5, abs(ctrl - ilm));
+                    if (ctrl > 0.99 || isSahdowNew == 1){
+                        half3 diffuseNew = lerp(_DiffuseColor, _ShadowColor,bias);
+                        diffuse = diffuseNew;
+                    }
+                }
                 half3 diffuseWithShadow = diffuse * shadow * _ReceiveShadow + light.color.rgb * _ShadowColor.rgb * (1 - shadow) * _ReceiveShadow + diffuse * (1 - _ReceiveShadow);
                 half3 specular = _EnableSpecular * light.color.rgb * _SpecularColor.rgb * _SpecularStrength * ((1 - _Anisotropic) * pow(_SpecularGloss, 2) / pow((pow(ONdotH, 2) * (pow(_SpecularGloss, 2) - 1) + 1), 2) * (pow(LdotH, 2) * (_SpecularGloss + 0.5) * 4.0) + _Anisotropic * 10 * pow(max(0, sqrt(1 - (LdotB * LdotB)) * sqrt(1 - (VdotB * VdotB)) - LdotB * VdotB), _SpecularGloss * 100));
                 int pixelLightCount = GetAdditionalLightsCount();
@@ -230,6 +246,7 @@ Shader "Custom/XCTS_Standard_V1.0.3"
 
                 half3 rimLight = _EnableRimLight * light.color.rgb * _RimLightColor.rgb * smoothstep(0.5 - _DiffuseSmoothstep * 0.5, 0.5 + _DiffuseSmoothstep * 0.5, max(NdotL + _DiffuseBias * 0.5, 0)) * shadow * smoothstep(0.5 - _RimLightSmoothstep * 0.5, 0.5 + _RimLightSmoothstep * 0.5, 1 - max(NdotV + _RimLightBias * 0.5, 0));
                 color = (color + half4(_RimLightStrength * rimLight, 0.0));
+
                 return color;
             }
 
