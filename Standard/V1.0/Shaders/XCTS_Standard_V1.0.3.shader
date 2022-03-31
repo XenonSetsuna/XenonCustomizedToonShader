@@ -222,8 +222,10 @@ Shader "Custom/XCTS_Standard_V1.0.3"
                     float isSahdowNew = step(ilm, ctrl);
                     float bias = smoothstep(0.5 - _DiffuseSmoothstep * 0.5, 0.5 + _DiffuseSmoothstep * 0.5, abs(ctrl - ilm));
                     if (ctrl > 0.99 || isSahdowNew == 1){
-                        half3 diffuseNew = lerp(_DiffuseColor, _ShadowColor,bias);
+                        half3 diffuseNew = bias * light.color.rgb * _DiffuseColor.rgb;
+                        diffuseNew += light.color.rgb * _ShadowColor.rgb*(1-bias);
                         diffuse = diffuseNew;
+                        
                     }
                 }
                 half3 diffuseWithShadow = diffuse * shadow * _ReceiveShadow + light.color.rgb * _ShadowColor.rgb * (1 - shadow) * _ReceiveShadow + diffuse * (1 - _ReceiveShadow);
