@@ -34,6 +34,8 @@ Shader "Custom/XCTS_Standard_V1.0.3"
         _AdditionalLightStrength ("Additional Light Strength", Range(0.0, 10.0)) = 1.5
         _AdditionalLightBias ("Additional Light Bias", Range(-1.0, 1.0)) = 1.0
         _AdditionalLightSmoothstep ("Additional Light Smoothstep", Range(0.0, 1.0)) = 1.0
+        [ToggleOff]_EnableShadowMap ("Enable FaceShadowMap", int) = 0
+        _ShadowMapTex ("FaceShaodwMapTex", 2D) = "white"{}
 
         [Header(Specular Settings)]
         _SpecularColor ("Specular Color", Color) = (1, 1, 1, 1)
@@ -52,8 +54,7 @@ Shader "Custom/XCTS_Standard_V1.0.3"
         _RimLightStrength ("Rim Light Strength", Range(0.0, 100.0)) = 0.5
         _RimLightBias ("Rim Light Bias", Range(-1.0, 1.0)) = 0.0
         _RimLightSmoothstep ("Rim Light Smoothstep", Range(0.0, 1.0)) = 0.0
-        [ToggleOff]_EnableShadowMap ("Enable FaceShadowMap", int) = 0
-        _ShadowMapTex ("FaceShaodwMapTex", 2D) = "white"{}
+
 
         [Header(Others)]
         _Wet ("Wet", Range(0.0, 1.0)) = 0.0
@@ -246,7 +247,6 @@ Shader "Custom/XCTS_Standard_V1.0.3"
 
                 half3 rimLight = _EnableRimLight * light.color.rgb * _RimLightColor.rgb * smoothstep(0.5 - _DiffuseSmoothstep * 0.5, 0.5 + _DiffuseSmoothstep * 0.5, max(NdotL + _DiffuseBias * 0.5, 0)) * shadow * smoothstep(0.5 - _RimLightSmoothstep * 0.5, 0.5 + _RimLightSmoothstep * 0.5, 1 - max(NdotV + _RimLightBias * 0.5, 0));
                 color = (color + half4(_RimLightStrength * rimLight, 0.0));
-
                 return color;
             }
 
