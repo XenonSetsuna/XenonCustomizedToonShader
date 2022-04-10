@@ -151,26 +151,26 @@ Shader "XCTS_Standard/NoCastingShadow_V2.0.1"
                 return o;
             }            
 
-            float3 float3Lerp(float3 a, float3 b, float c)//ÓÃÓÚ0-1²åÖµÁ½ÖÖÑÕÉ«µÄº¯Êı
+            float3 float3Lerp(float3 a, float3 b, float c)//ç”¨äº0-1æ’å€¼ä¸¤ç§é¢œè‰²çš„å‡½æ•°
             {
                 return a * (1 - c) + b * c;
             }
 
-            float floatLerp(float a, float b, float c)//ÓÃÓÚ0-1²åÖµÁ½¸öÊıµÄº¯Êı
+            float floatLerp(float a, float b, float c)//ç”¨äº0-1æ’å€¼ä¸¤ä¸ªæ•°çš„å‡½æ•°
             {
                 return a * (1 - c) + b * c;
             }
 
             float4 frag(Varyings i): SV_Target
             {
-                //-------Ç°ÆÚ×¼±¸-------
+                //-------å‰æœŸå‡†å¤‡-------
                 float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, textureSampler1, i.uv);
                 clip(baseMap.a - _Cutoff);
                 float3 albedo = baseMap.rgb * _BaseColor;
 
                 Light mainLight = GetMainLight();
 
-                float3 lightDirection = normalize(mainLight.direction);//ÒÔÏà»ú·½ÏòÎª¹âÕÕ·½Ïò
+                float3 lightDirection = normalize(mainLight.direction);//ä»¥ç›¸æœºæ–¹å‘ä¸ºå…‰ç…§æ–¹å‘
                 float3 normal = normalize(i.normalWS);
                 float3 tangent = normalize(i.tangentWS);
                 float3 binormal = normalize(i.binormalWS);
@@ -188,9 +188,9 @@ Shader "XCTS_Standard/NoCastingShadow_V2.0.1"
                 float LdotB = dot(lightDirection, binormal);
 	            float VdotB = dot(viewDirection, binormal);
 
-                //-------½áÊøÇ°ÆÚ×¼±¸-------
+                //-------ç»“æŸå‰æœŸå‡†å¤‡-------
 
-                //-------Ö÷¹âÔ´¹âÕÕ¼ÆËã-------
+                //-------ä¸»å…‰æºå…‰ç…§è®¡ç®—-------
                 float3 fixedLightDirection = normalize(float3Lerp(lightDirection, float3(lightDirection.x, 0, lightDirection.z), _LightingDirectionFix));
                 float NdotFL = dot(normal, fixedLightDirection);
                 float linear01DiffuseFactor = smoothstep(0.5 - _DiffuseShadowSmoothstep * 0.5, 0.5 + _DiffuseShadowSmoothstep * 0.5, NdotFL - _DiffuseShadowBias);
@@ -199,9 +199,9 @@ Shader "XCTS_Standard/NoCastingShadow_V2.0.1"
                 float linear01LightingFactor = linear01DiffuseFactor * linear01ShadowFactor;
                 float linear01ShadingFactor = 1 - linear01LightingFactor;
                 float3 finalDiffuseColor = _LightingColor * linear01LightingFactor + _ShadingColor * linear01ShadingFactor;
-                //-------½áÊøÖ÷¹âÔ´¹âÕÕ¼ÆËã-------
+                //-------ç»“æŸä¸»å…‰æºå…‰ç…§è®¡ç®—-------
                 
-                //-------´Î¼¶¹âÔ´¹âÕÕ¼ÆËã-------
+                //-------æ¬¡çº§å…‰æºå…‰ç…§è®¡ç®—-------
                 int pixelLightCount = GetAdditionalLightsCount();
                 float3 finalAdditionalLightingColor = float3(0, 0, 0);
                 for (int lightIndex = 0; lightIndex < pixelLightCount; lightIndex ++)
@@ -211,29 +211,29 @@ Shader "XCTS_Standard/NoCastingShadow_V2.0.1"
                     float linear01AdditionalLightingFactor = smoothstep(0.5 - _DiffuseShadowSmoothstep * 0.5, 0.5 + _DiffuseShadowSmoothstep * 0.5, NdotAL - _DiffuseShadowBias) * additionalLight.distanceAttenuation;
                     finalAdditionalLightingColor += additionalLight.color.rgb * linear01AdditionalLightingFactor;
                 }
-                //-------½áÊø´Î¼¶¹âÔ´¹âÕÕ¼ÆËã-------
+                //-------ç»“æŸæ¬¡çº§å…‰æºå…‰ç…§è®¡ç®—-------
 
-                //-------¸ß¹â¼ÆËã-------
+                //-------é«˜å…‰è®¡ç®—-------
                 float linear01SpecularFactorCommon = pow(saturate(NdotH), _SpecularGlossness);
                 float linear01SpecularFactorAnisotropic = pow(saturate(sqrt(1 - BdotH * BdotH)), _SpecularGlossness);
                 float linear01SpecularFactor = smoothstep(0.5 - _SpecularSmoothstep * 0.5, 0.5 + _SpecularSmoothstep * 0.5, floatLerp(linear01SpecularFactorCommon, linear01SpecularFactorAnisotropic, _SpecularMode));
                 float3 finalSpecularColor = _SpecularColor.rgb * linear01SpecularFactor * finalDiffuseColor;
-                //-------½áÊø¸ß¹â¼ÆËã-------
+                //-------ç»“æŸé«˜å…‰è®¡ç®—-------
 
-                //-------±ßÔµ¹â¼ÆËã-------
+                //-------è¾¹ç¼˜å…‰è®¡ç®—-------
                 float linear01RimLightFactor = smoothstep(0.5 - _RimLightSmoothstep * 0.5, 0.5 + _RimLightSmoothstep * 0.5, (1 - saturate(NdotV - _RimLightBias * 0.5)));
                 linear01RimLightFactor *= floatLerp(linear01DiffuseFactor, 1, _ShadingSideRimLight);
                 float3 finalRimLightColor = _RimLightColor.rgb * linear01RimLightFactor * float3Lerp(float3(1, 1, 1), albedo, _RimLightAlbedoMix) * finalDiffuseColor * (float3(1, 1, 1) + finalAdditionalLightingColor);
-                //-------½áÊø±ßÔµ¹â¼ÆËã-------
+                //-------ç»“æŸè¾¹ç¼˜å…‰è®¡ç®—-------
 
-                //-------×Ô·¢¹â¼ÆËã-------
+                //-------è‡ªå‘å…‰è®¡ç®—-------
                 float3 finalEmissionColor = _EmissionColor.rgb;
-                //-------½áÊø×Ô·¢¹â¼ÆËã-------
+                //-------ç»“æŸè‡ªå‘å…‰è®¡ç®—-------
 
-                //-------°µ²¿ÔöÇ¿¼ÆËã-------
+                //-------æš—éƒ¨å¢å¼ºè®¡ç®—-------
                 float linear01ShadeEnhancementFactor = smoothstep(0.5 - _ShadeEnhancementSmoothstep * 0.5, 0.5 + _ShadeEnhancementSmoothstep * 0.5, (1 - saturate(NdotV - _ShadeEnhancementBias * 0.5)) * (1 - saturate(NdotV)));
                 float3 finalShadeEnhancementColor = (_ShadeEnhancementColor.rgb - float3(1, 1, 1)) * _ShadeEnhancementIntensity * linear01ShadeEnhancementFactor;
-                //-------½áÊø°µ²¿ÔöÇ¿¼ÆËã-------
+                //-------ç»“æŸæš—éƒ¨å¢å¼ºè®¡ç®—-------
 
                 float3 finalColor = albedo * (finalDiffuseColor + finalAdditionalLightingColor + finalSpecularColor + finalEmissionColor + finalShadeEnhancementColor) + finalRimLightColor;
                 return float4(finalColor, 1);
